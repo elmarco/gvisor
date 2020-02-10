@@ -734,14 +734,19 @@ func vendorIDFromRegs(bx, cx, dx uint32) string {
 // smaller chunk of memory depending on features that are actually enabled.
 // Currently we just use the largest possible size for simplicity (which is
 // about 2.5K worst case, with avx512).
+
+var maxXsaveSize uint32
+
 func (fs *FeatureSet) ExtendedStateSize() (size, align uint) {
 	if fs.UseXsave() {
 		// Leaf 0 of xsaveinfo function returns the size for currently
 		// enabled xsave features in ebx, the maximum size if all valid
 		// features are saved with xsave in ecx, and valid XCR0 bits in
 		// edx:eax.
-		_, _, maxSize, _ := HostID(uint32(xSaveInfo), 0)
-		return uint(maxSize), 64
+		if maxXsaveSize == 0 {
+			_, _, maxXsaveSize, _ = HostID(uint32(xSaveInfo), 0)
+		}
+		return uint(maxXsaveSize), 64
 	}
 
 	// If we don't support xsave, we fall back to fxsave, which requires
